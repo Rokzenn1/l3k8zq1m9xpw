@@ -2,24 +2,79 @@
 
 import { useEffect } from "react";
 
-/**
- * Clé sessionStorage : une seule incrémentation par onglet (F5 / refresh ne compte pas).
- * Le Web ne permet pas de distinguer un « scan QR » d’une navigation identique — on évite
- * surtout les doubles comptages par rafraîchissement accidentel.
- */
-const SCAN_SESSION_KEY = "leo_evq_scan";
+const STORAGE_KEY = "leo_evq_participation";
+const LEGACY_SCAN_KEY = "leo_evq_scan";
 
-export function useRecordVisit(onDone?: (value: number) => void) {
+function readStoredEpoch(): number | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const o = JSON.parse(raw) as { e?: number };
+    return typeof o.e === "number" ? o.e : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredEpoch(epoch: number) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ e: epoch }));
+  } catch {
+    /* ignore */
+  }
+}
+
+function migrateLegacyScan() {
+  try {
+    if (localStorage.getItem(LEGACY_SCAN_KEY) !== "1") return;
+    if (readStoredEpoch() !== null) {
+      localStorage.removeItem(LEGACY_SCAN_KEY);
+      return;
+    }
+    writeStoredEpoch(0);
+    localStorage.removeItem(LEGACY_SCAN_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function pendingKey(epoch: number) {
+  return `leo_evq_visit_pending_${epoch}`;
+}
+
+type VisitOpts = {
+  /** Incrémenté à chaque reset compteur (admin) — nouvelle « vague » de participations */
+  participationEpoch: number;
+  /** Données site (dont epoch) chargées */
+  ready: boolean;
+};
+
+/**
+ * Une participation par appareil et par « vague » (epoch).
+ * localStorage persiste après fermeture du navigateur.
+ */
+export function useRecordVisit(
+  onDone?: (value: number) => void,
+  opts?: VisitOpts,
+) {
+  const participationEpoch = opts?.participationEpoch ?? 0;
+  const ready = opts?.ready ?? false;
+
   useEffect(() => {
+    if (!ready) return;
     if (typeof window === "undefined") return;
 
+    migrateLegacyScan();
+
     try {
-      const prev = sessionStorage.getItem(SCAN_SESSION_KEY);
-      if (prev === "1") return;
-      if (prev === "pending") return;
-      sessionStorage.setItem(SCAN_SESSION_KEY, "pending");
+      const last = readStoredEpoch();
+      if (last === participationEpoch) return;
+
+      if (localStorage.getItem(pendingKey(participationEpoch)) === "1") return;
+      localStorage.setItem(pendingKey(participationEpoch), "1");
     } catch {
-      /* stockage indisponible (mode privé strict, etc.) — on tente quand même un POST */
+      /* stockage indisponible — on tente quand même un POST */
     }
 
     let cancelled = false;
@@ -30,14 +85,15 @@ export function useRecordVisit(onDone?: (value: number) => void) {
         const json = (await res.json()) as { value?: number };
         if (res.ok && typeof json.value === "number") {
           try {
-            sessionStorage.setItem(SCAN_SESSION_KEY, "1");
+            writeStoredEpoch(participationEpoch);
+            localStorage.removeItem(pendingKey(participationEpoch));
           } catch {
             /* ignore */
           }
           if (!cancelled) onDone?.(json.value);
         } else {
           try {
-            sessionStorage.removeItem(SCAN_SESSION_KEY);
+            localStorage.removeItem(pendingKey(participationEpoch));
           } catch {
             /* ignore */
           }
@@ -45,7 +101,7 @@ export function useRecordVisit(onDone?: (value: number) => void) {
       } catch {
         if (!cancelled) {
           try {
-            sessionStorage.removeItem(SCAN_SESSION_KEY);
+            localStorage.removeItem(pendingKey(participationEpoch));
           } catch {
             /* ignore */
           }
@@ -56,5 +112,5 @@ export function useRecordVisit(onDone?: (value: number) => void) {
     return () => {
       cancelled = true;
     };
-  }, [onDone]);
+  }, [onDone, participationEpoch, ready]);
 }

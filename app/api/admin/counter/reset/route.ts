@@ -90,5 +90,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: upCounter.message }, { status: 500 });
   }
 
+  const { data: settingsRow, error: setFetchErr } = await db
+    .from("site_settings")
+    .select("participation_epoch")
+    .eq("id", 1)
+    .maybeSingle();
+
+  if (!setFetchErr && settingsRow != null) {
+    const row = settingsRow as { participation_epoch?: number };
+    const nextEpoch = (row.participation_epoch ?? 0) + 1;
+    await db
+      .from("site_settings")
+      .update({ participation_epoch: nextEpoch })
+      .eq("id", 1);
+    /* Si la colonne n’existe pas encore (migration 004), l’update échoue sans bloquer le reset. */
+  }
+
   return NextResponse.json({ ok: true });
 }

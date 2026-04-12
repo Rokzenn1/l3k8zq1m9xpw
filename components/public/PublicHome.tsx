@@ -15,35 +15,45 @@ import { buildEventHeadline } from "@/lib/branding";
 import type { ObjectiveRow } from "@/types";
 
 function heroSubcopy(value: number): { line1: string; line2: string } {
-  if (value < 5) {
+  if (value < 8) {
     return {
-      line1: "Continuez à scanner 😈",
-      line2: "Le compteur grimpe à chaque ouverture du lien.",
+      line1: "Objectifs & compteur",
+      line2: "Une participation par appareil — le rafraîchissement ne compte pas en plus.",
     };
   }
-  if (value < 15) {
+  if (value < 20) {
     return {
-      line1: "Continuez à scanner 😈",
-      line2: "Ça commence à chauffer 🔥",
+      line1: "Ça avance 🔥",
+      line2: "Le total regroupe les participations uniques (un téléphone = une fois).",
     };
   }
   return {
-    line1: "Ça envoie du lourd 🔥",
-    line2: "Encore quelques scans pour tout débloquer !",
+    line1: "Le compteur monte",
+    line2: "Les paliers se débloquent selon le nombre de participants.",
   };
 }
 
 export function PublicHome() {
-  const { counter, objectives, evgFirstName, loading, error, refresh } =
-    useEventData();
+  const {
+    counter,
+    objectives,
+    evgFirstName,
+    participationEpoch,
+    loading,
+    error,
+    refresh,
+  } = useEventData();
   const [proof, setProof] = useState<ObjectiveRow | null>(null);
 
   const onVisitDone = useCallback(() => {
-    toast.success("Scan enregistré !", { duration: 2200 });
+    toast.success("Participation enregistrée !", { duration: 2200 });
     refresh();
   }, [refresh]);
 
-  useRecordVisit(onVisitDone);
+  useRecordVisit(onVisitDone, {
+    participationEpoch: participationEpoch ?? 0,
+    ready: !loading && participationEpoch !== null,
+  });
 
   const value = counter?.value ?? 0;
   const { celebration, clearCelebration } = useMilestoneCelebration(

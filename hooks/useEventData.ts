@@ -8,6 +8,7 @@ export function useEventData() {
   const [counter, setCounter] = useState<CounterRow | null>(null);
   const [objectives, setObjectives] = useState<ObjectiveRow[]>([]);
   const [evgFirstName, setEvgFirstName] = useState<string | null>(null);
+  const [participationEpoch, setParticipationEpoch] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,13 +26,34 @@ export function useEventData() {
     if (oRes.error) setError(oRes.error.message);
     else setObjectives((oRes.data as ObjectiveRow[]) ?? []);
 
-    if (sRes.error) setError(sRes.error.message);
-    else
+    if (sRes.error) {
+      setError(sRes.error.message);
+      setEvgFirstName(null);
+      setParticipationEpoch(0);
+    } else {
       setEvgFirstName(
         typeof sRes.data?.evg_first_name === "string"
           ? sRes.data.evg_first_name
           : null,
       );
+    }
+
+    /* Colonne optionnelle (migration 004) — si absente, epoch = 0 */
+    let epoch = 0;
+    const epochRes = await supabase
+      .from("site_settings")
+      .select("participation_epoch")
+      .eq("id", 1)
+      .maybeSingle();
+    if (
+      !epochRes.error &&
+      epochRes.data &&
+      typeof (epochRes.data as { participation_epoch?: number }).participation_epoch ===
+        "number"
+    ) {
+      epoch = (epochRes.data as { participation_epoch: number }).participation_epoch;
+    }
+    setParticipationEpoch(epoch);
 
     setLoading(false);
   }, []);
@@ -74,5 +96,13 @@ export function useEventData() {
     };
   }, [load]);
 
-  return { counter, objectives, evgFirstName, loading, error, refresh: load };
+  return {
+    counter,
+    objectives,
+    evgFirstName,
+    participationEpoch,
+    loading,
+    error,
+    refresh: load,
+  };
 }

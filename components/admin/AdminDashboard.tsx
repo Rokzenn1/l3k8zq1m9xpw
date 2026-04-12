@@ -24,6 +24,7 @@ export function AdminDashboard() {
   const [resetLoading, setResetLoading] = useState(false);
   const [evgFirstName, setEvgFirstName] = useState("");
   const [savingFirstName, setSavingFirstName] = useState(false);
+  const [incrementLoading, setIncrementLoading] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -217,6 +218,19 @@ export function AdminDashboard() {
     load();
   }
 
+  async function incrementCounterManual() {
+    setIncrementLoading(true);
+    const res = await fetch("/api/admin/counter/increment", { method: "POST" });
+    const json = await res.json();
+    setIncrementLoading(false);
+    if (!res.ok) {
+      toast.error(json.error ?? "Erreur");
+      return;
+    }
+    toast.success(`Compteur : ${json.value ?? "—"}`);
+    load();
+  }
+
   const unlocked = objectives.filter((o) => o.status === "unlocked");
   const reached = objectives.filter(
     (o) => o.status === "unlocked" || o.status === "validated",
@@ -296,6 +310,22 @@ export function AdminDashboard() {
             <RefreshIcon className="h-4 w-4" />
             Refresh
           </button>
+
+          <div className="mt-4 rounded-xl border border-orange-500/25 bg-orange-950/20 p-4">
+            <p className="text-xs leading-relaxed text-zinc-400">
+              Ajoute <span className="text-zinc-300">+1</span> comme une visite (même logique que le site : objectifs
+              débloqués si seuil atteint).
+            </p>
+            <button
+              type="button"
+              disabled={incrementLoading}
+              onClick={() => void incrementCounterManual()}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-orange-500/40 bg-orange-600/20 py-2.5 text-sm font-semibold text-orange-200 transition hover:bg-orange-600/30 disabled:opacity-50"
+            >
+              <PlusIcon className="h-4 w-4" />
+              {incrementLoading ? "…" : "Incrémenter +1 (manuel)"}
+            </button>
+          </div>
 
           <div className="mt-6 border-t border-zinc-800 pt-6">
             <h3 className="text-xs font-bold uppercase tracking-[0.12em] text-rose-400/90">
@@ -570,6 +600,24 @@ function StatusBadge({ status }: { status: ObjectiveRow["status"] }) {
       <CheckIcon className="h-3 w-3" />
       Statut : Validé
     </span>
+  );
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M5 12h14" />
+      <path d="M12 5v14" />
+    </svg>
   );
 }
 
