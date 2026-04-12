@@ -15,22 +15,10 @@ import { buildEventHeadline } from "@/lib/branding";
 import type { ObjectiveRow } from "@/types";
 
 function heroSubcopy(value: number): { line1: string; line2: string } {
-  if (value < 8) {
     return {
       line1: "Objectifs & compteur",
       line2: "Une participation par appareil — le rafraîchissement ne compte pas en plus.",
     };
-  }
-  if (value < 20) {
-    return {
-      line1: "Ça avance 🔥",
-      line2: "Le total regroupe les participations uniques (un téléphone = une fois).",
-    };
-  }
-  return {
-    line1: "Le compteur monte",
-    line2: "Les paliers se débloquent selon le nombre de participants.",
-  };
 }
 
 export function PublicHome() {
@@ -147,7 +135,7 @@ export function PublicHome() {
       <footer className="fixed bottom-0 left-0 right-0 border-t border-zinc-800/80 bg-[#141414]/95 py-3.5 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg justify-center px-4">
           <Link
-            href="/admin/login"
+            href="/admin/dashboard"
             prefetch={false}
             className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-5 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-800 hover:text-white"
           >
