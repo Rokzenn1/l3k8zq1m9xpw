@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -247,13 +248,23 @@ export function AdminDashboard() {
               <p className="text-[11px] text-zinc-500">Compteur & objectifs</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => void logout()}
-            className="rounded-xl border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-800 hover:text-white"
-          >
-            Logout
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-orange-500/35 hover:bg-zinc-800 hover:text-white"
+              prefetch={false}
+            >
+              <HomeIcon className="h-3.5 w-3.5 text-orange-400/90" />
+              Voir le site
+            </Link>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="rounded-xl border border-zinc-700 bg-zinc-900/80 px-3 py-2 text-xs font-semibold text-zinc-300 transition hover:border-zinc-600 hover:bg-zinc-800 hover:text-white"
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 
@@ -600,6 +611,24 @@ function StatusBadge({ status }: { status: ObjectiveRow["status"] }) {
       <CheckIcon className="h-3 w-3" />
       Statut : Validé
     </span>
+  );
+}
+
+function HomeIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
   );
 }
 
