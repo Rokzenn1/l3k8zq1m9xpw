@@ -43,3 +43,42 @@ body {
 .animate-counter-pop {
   animation: counter-pop 0.22s ease-out;
 }
+
+@keyframes celebration-pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.88) translateY(12px);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(1.04) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.celebration-pop {
+  animation: celebration-pop-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes gauge-shimmer {
+  0% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.15);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+.gauge-fill {
+  animation: gauge-shimmer 2.2s ease-in-out infinite;
+}
+
+.gauge-fill-done {
+  animation: gauge-shimmer 2.5s ease-in-out infinite;
+}

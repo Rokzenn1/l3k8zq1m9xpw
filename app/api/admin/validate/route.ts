@@ -19,16 +19,17 @@ export async function POST(request: Request) {
   if (typeof objectiveId !== "string" || !objectiveId) {
     return NextResponse.json({ error: "objectiveId requis" }, { status: 400 });
   }
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "Fichier requis" }, { status: 400 });
-  }
 
-  const maxBytes = 50 * 1024 * 1024;
-  if (file.size > maxBytes) {
-    return NextResponse.json(
-      { error: "Fichier trop volumineux (max 50 Mo)" },
-      { status: 400 },
-    );
+  const hasFile = file instanceof File && file.size > 0;
+
+  if (hasFile) {
+    const maxBytes = 50 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      return NextResponse.json(
+        { error: "Fichier trop volumineux (max 50 Mo)" },
+        { status: 400 },
+      );
+    }
   }
 
   const db = createServiceClient();
@@ -49,29 +50,34 @@ export async function POST(request: Request) {
     );
   }
 
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-  const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "bin";
-  const path = `${objectiveId}/${crypto.randomUUID()}.${safeExt}`;
+  let proofUrl: string | null = null;
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const { error: upErr } = await db.storage.from("proofs").upload(path, buffer, {
-    contentType: file.type || "application/octet-stream",
-    upsert: false,
-  });
+  if (hasFile && file instanceof File) {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+    const safeExt = /^[a-z0-9]+$/.test(ext) ? ext : "bin";
+    const path = `${objectiveId}/${crypto.randomUUID()}.${safeExt}`;
 
-  if (upErr) {
-    return NextResponse.json({ error: upErr.message }, { status: 500 });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: upErr } = await db.storage.from("proofs").upload(path, buffer, {
+      contentType: file.type || "application/octet-stream",
+      upsert: false,
+    });
+
+    if (upErr) {
+      return NextResponse.json({ error: upErr.message }, { status: 500 });
+    }
+
+    const {
+      data: { publicUrl },
+    } = db.storage.from("proofs").getPublicUrl(path);
+    proofUrl = publicUrl;
   }
-
-  const {
-    data: { publicUrl },
-  } = db.storage.from("proofs").getPublicUrl(path);
 
   const { data: row, error: updErr } = await db
     .from("objectives")
     .update({
       status: "validated",
-      proof_url: publicUrl,
+      proof_url: proofUrl,
     })
     .eq("id", objectiveId)
     .eq("status", "unlocked")
@@ -89,5 +95,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return NextResponse.json({ objective: row, proofUrl: publicUrl });
+  return NextResponse.json({ objective: row, proofUrl });
 }

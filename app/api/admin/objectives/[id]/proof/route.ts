@@ -19,7 +19,7 @@ export async function DELETE(_request: Request, { params }: Params) {
   const db = createServiceClient();
   const { data: objective, error: fetchErr } = await db
     .from("objectives")
-    .select("id, status, proof_url, threshold")
+    .select("id, status, proof_url")
     .eq("id", id)
     .single();
 
@@ -27,9 +27,16 @@ export async function DELETE(_request: Request, { params }: Params) {
     return NextResponse.json({ error: "Objectif introuvable" }, { status: 404 });
   }
 
-  if (objective.status !== "validated" || !objective.proof_url) {
+  if (objective.status !== "validated") {
     return NextResponse.json(
-      { error: "Aucune preuve à supprimer (objectif non validé ou sans fichier)" },
+      { error: "L’objectif doit être validé" },
+      { status: 400 },
+    );
+  }
+
+  if (!objective.proof_url) {
+    return NextResponse.json(
+      { error: "Aucune preuve à supprimer" },
       { status: 400 },
     );
   }
@@ -44,21 +51,10 @@ export async function DELETE(_request: Request, { params }: Params) {
       );
     }
   }
-  /* Si l’URL ne peut pas être parsée, on met quand même à jour la ligne (fichier orphelin possible). */
-
-  const { data: counterRow } = await db
-    .from("counter")
-    .select("value")
-    .limit(1)
-    .single();
-  const current = counterRow?.value ?? 0;
-  const nextStatus =
-    objective.threshold <= current ? "unlocked" : "locked";
 
   const { data: row, error: updErr } = await db
     .from("objectives")
     .update({
-      status: nextStatus,
       proof_url: null,
     })
     .eq("id", id)

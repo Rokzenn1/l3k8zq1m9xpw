@@ -7,7 +7,10 @@ import { AnimatedCounter } from "@/components/public/AnimatedCounter";
 import { ObjectiveCard } from "@/components/public/ObjectiveCard";
 import { ProofModal } from "@/components/public/ProofModal";
 import { useEventData } from "@/hooks/useEventData";
+import { useMilestoneCelebration } from "@/hooks/useMilestoneCelebration";
 import { useRecordVisit } from "@/hooks/useRecordVisit";
+import { MilestoneCelebration } from "@/components/public/MilestoneCelebration";
+import { NextObjectiveGauge } from "@/components/public/NextObjectiveGauge";
 import { buildEventHeadline } from "@/lib/branding";
 import type { ObjectiveRow } from "@/types";
 
@@ -43,6 +46,10 @@ export function PublicHome() {
   useRecordVisit(onVisitDone);
 
   const value = counter?.value ?? 0;
+  const { celebration, clearCelebration } = useMilestoneCelebration(
+    value,
+    objectives,
+  );
   const sub = useMemo(() => heroSubcopy(value), [value]);
   const headline = useMemo(
     () => buildEventHeadline(evgFirstName),
@@ -83,6 +90,11 @@ export function PublicHome() {
               <p className="mt-1 max-w-[20rem] text-center text-xs text-zinc-500">
                 {sub.line2}
               </p>
+              <NextObjectiveGauge
+                counter={value}
+                objectives={objectives}
+                loading={loading}
+              />
             </>
           )}
         </section>
@@ -116,6 +128,11 @@ export function PublicHome() {
       </main>
 
       <ProofModal objective={proof} onClose={() => setProof(null)} />
+
+      <MilestoneCelebration
+        objectives={celebration}
+        onClose={clearCelebration}
+      />
 
       <footer className="fixed bottom-0 left-0 right-0 border-t border-zinc-800/80 bg-[#141414]/95 py-3.5 backdrop-blur-md">
         <div className="mx-auto flex max-w-lg justify-center px-4">

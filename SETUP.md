@@ -46,7 +46,7 @@ Ouvre [http://localhost:3000](http://localhost:3000) — la première ouverture 
 
 Dans le dashboard, **Réinitialiser le compteur** exige de taper exactement `REINITIALISER` : remise du compteur à 0, objectifs verrouillés, preuves supprimées du stockage.
 
-**Supprimer la preuve** sur un objectif validé retire le fichier et repasse l’objectif en « atteint » (tu peux renvoyer une autre preuve).
+**Supprimer la preuve** sur un objectif validé retire le fichier du stockage ; l’objectif **reste validé** (sans fichier).
 
 ## 5. QR code
 

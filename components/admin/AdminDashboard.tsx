@@ -154,14 +154,10 @@ export function AdminDashboard() {
 
   async function validateObjective(id: string) {
     const file = fileById[id];
-    if (!file) {
-      toast.error("Choisis une photo ou une vidéo.");
-      return;
-    }
     setValidatingId(id);
     const fd = new FormData();
     fd.set("objectiveId", id);
-    fd.set("file", file);
+    if (file) fd.set("file", file);
     const res = await fetch("/api/admin/validate", { method: "POST", body: fd });
     const json = await res.json();
     setValidatingId(null);
@@ -178,7 +174,7 @@ export function AdminDashboard() {
     if (o.status !== "validated" || !o.proof_url) return;
     if (
       !confirm(
-        "Supprimer cette preuve ? L’objectif repassera en « atteint » (tu pourras renvoyer un fichier).",
+        "Supprimer cette preuve ? L’objectif restera validé (sans fichier).",
       )
     ) {
       return;
@@ -421,7 +417,11 @@ export function AdminDashboard() {
                   </div>
                 </div>
                 {o.status === "unlocked" && (
-                  <div className="mt-4 flex flex-col gap-3 border-t border-zinc-800 pt-4 sm:flex-row sm:items-center">
+                  <div className="mt-4 flex flex-col gap-3 border-t border-zinc-800 pt-4">
+                    <p className="text-xs text-zinc-500">
+                      Valider avec ou sans preuve — photo / vidéo optionnelles.
+                    </p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                     <input
                       type="file"
                       accept="image/*,video/*"
@@ -441,6 +441,7 @@ export function AdminDashboard() {
                     >
                       {validatingId === o.id ? "…" : "Valider"}
                     </button>
+                    </div>
                   </div>
                 )}
               </li>
