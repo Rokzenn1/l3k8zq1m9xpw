@@ -26,6 +26,7 @@ export function AdminDashboard() {
   const [evgFirstName, setEvgFirstName] = useState("");
   const [savingFirstName, setSavingFirstName] = useState(false);
   const [incrementLoading, setIncrementLoading] = useState(false);
+  const [downloadAllLoading, setDownloadAllLoading] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -232,6 +233,58 @@ export function AdminDashboard() {
     load();
   }
 
+  async function downloadAllProofs() {
+    const proofs = objectives.filter((o) => Boolean(o.proof_url));
+    if (proofs.length === 0) {
+      toast.error("Aucune preuve disponible à télécharger.");
+      return;
+    }
+
+    setDownloadAllLoading(true);
+    let successCount = 0;
+
+    await Promise.all(
+      proofs.map(async (objective) => {
+        const sourceUrl = objective.proof_url;
+        if (!sourceUrl) return;
+
+        try {
+          const response = await fetch(sourceUrl);
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const blob = await response.blob();
+          const ext = inferProofExtension(sourceUrl, blob.type);
+          const filename = `preuve-${objective.threshold}-${slugifyForFilename(objective.description)}.${ext}`;
+
+          const objectUrl = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = objectUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(objectUrl);
+          successCount += 1;
+        } catch {
+          // On continue pour les autres preuves même si un fichier échoue.
+        }
+      }),
+    );
+
+    setDownloadAllLoading(false);
+    if (successCount === 0) {
+      toast.error("Impossible de télécharger les preuves.");
+      return;
+    }
+    if (successCount < proofs.length) {
+      toast.warning(`${successCount}/${proofs.length} preuves téléchargées.`);
+      return;
+    }
+    toast.success(`${successCount} preuve(s) téléchargée(s).`);
+  }
+
   const unlocked = objectives.filter((o) => o.status === "unlocked");
   const reached = objectives.filter(
     (o) => o.status === "unlocked" || o.status === "validated",
@@ -394,7 +447,18 @@ export function AdminDashboard() {
         </section>
 
         <section>
-          <h2 className="text-base font-bold text-white">Objectifs</h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="text-base font-bold text-white">Objectifs</h2>
+            <button
+              type="button"
+              onClick={() => void downloadAllProofs()}
+              disabled={downloadAllLoading}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-700/70 bg-zinc-900/60 px-2.5 py-1.5 text-[11px] font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200 disabled:opacity-50"
+            >
+              <DownloadIcon className="h-3.5 w-3.5" />
+              {downloadAllLoading ? "Téléchargement…" : "Télécharger les preuves"}
+            </button>
+          </div>
           <ul className="mt-4 space-y-3">
             {objectives.map((o) => (
               <li
@@ -760,4 +824,48 @@ function CheckIcon({ className }: { className?: string }) {
       <path d="M20 6 9 17l-5-5" />
     </svg>
   );
+}
+
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M5 21h14" />
+    </svg>
+  );
+}
+
+function slugifyForFilename(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48) || "objectif";
+}
+
+function inferProofExtension(sourceUrl: string, mimeType: string) {
+  const cleanUrl = sourceUrl.split("?")[0] ?? "";
+  const urlExt = cleanUrl.match(/\.([a-zA-Z0-9]+)$/)?.[1]?.toLowerCase();
+  if (urlExt) return urlExt;
+
+  if (mimeType.startsWith("image/")) {
+    return mimeType.split("/")[1] || "jpg";
+  }
+  if (mimeType.startsWith("video/")) {
+    return mimeType.split("/")[1] || "mp4";
+  }
+
+  return "bin";
 }
